@@ -21,7 +21,7 @@ import UIKit
     fileprivate(set) var progress:Float = 0.0
     
     //MARK: - IBInspectable Variables
-    @IBInspectable open var sliderColor:UIColor = UIColor.lightGray {
+    @IBInspectable open var sliderColor:UIColor = UIColor(white: 0, alpha:0.1) {
         didSet {
             self.slider.backgroundColor = self.sliderColor
             self.setNeedsLayout()
@@ -59,7 +59,7 @@ import UIKit
             self.setNeedsLayout()
         }
     }
-    @IBInspectable open var sliderImageContentMode:UIViewContentMode = .scaleAspectFit {
+    @IBInspectable open var sliderImageContentMode:UIViewContentMode = .scaleAspectFill {
         didSet {
             self.imageView.contentMode = self.sliderImageContentMode
             self.setNeedsLayout()
@@ -68,6 +68,12 @@ import UIKit
     @IBInspectable open var sliderFont:UIFont = UIFont.systemFont(ofSize: 14) {
         didSet {
             self.sliderLabel.font = self.sliderFont
+            self.setNeedsLayout()
+        }
+    }
+    
+    @IBInspectable open var sliderThreshold:Float = 0.65 {
+        didSet {
             self.setNeedsLayout()
         }
     }
@@ -126,6 +132,8 @@ import UIKit
         //Add pan gesture to slide the slider view
         let pan = UIPanGestureRecognizer(target: self, action: #selector(self.panGesture(_:)))
         self.addGestureRecognizer(pan)
+        
+        self.backgroundColor = .clear
     }
     
     //MARK: - Public Methods
@@ -141,51 +149,51 @@ import UIKit
         let padding: CGFloat = 20.0
         
         switch (recognizer.state) {
-            case .began:
-                //Only slide if the gestures starts within the slide frame
-                self.shouldSlide = x > (self.sliderWidthConstraint.constant - CGFloat(self.sliderWidth)) && x < self.sliderWidthConstraint.constant + padding
-                self.sendActions(for: .editingDidBegin)
-            case .changed:
-                guard self.shouldSlide && x > CGFloat(self.sliderWidth) && x <= self.bounds.size.width + padding else { return }
-                self.sliderWidthConstraint.constant = x
-                self.progress = Float(min(x/self.bounds.size.width, 1))
-                self.sendActions(for: .valueChanged)
-            case .ended:fallthrough
-            case .cancelled:
-                guard self.shouldSlide else { return }
-                self.shouldSlide = false
-                
-                self.progress = Float(x/self.bounds.size.width)
-                let success: Bool
-                let finalX: CGFloat
-                
-                //If we are more than 65% through the swipe and moving the the right direction
-                if self.progress > 0.65 && recognizer.velocity(in: self).x > -1.0 {
-                    success = true
-                    finalX = self.bounds.size.width
-                } else {
-                    success = false
-                    finalX = CGFloat(self.sliderWidth)
-                    self.progress = 0.0
-                }
-                
-                self.sliderWidthConstraint.constant = finalX
-                self.setNeedsUpdateConstraints()
-                
-                UIView.animate(withDuration: 0.25, animations: { 
-                    self.layoutIfNeeded()
-                }, completion: { (finished) in
-                    if success {
-                        if #available(iOS 9.0, *) {
-                            self.sendActions(for: .primaryActionTriggered)
-                        }
-                        
-                        self.sendActions(for: .editingDidEnd)
-                    } else {
-                        self.sendActions(for: .touchCancel)
+        case .began:
+            //Only slide if the gestures starts within the slide frame
+            self.shouldSlide = x > (self.sliderWidthConstraint.constant - CGFloat(self.sliderWidth)) && x < self.sliderWidthConstraint.constant + padding
+            self.sendActions(for: .editingDidBegin)
+        case .changed:
+            guard self.shouldSlide && x > CGFloat(self.sliderWidth) && x <= self.bounds.size.width + padding else { return }
+            self.sliderWidthConstraint.constant = x
+            self.progress = Float(min(x/self.bounds.size.width, 1))
+            self.sendActions(for: .valueChanged)
+        case .ended:fallthrough
+        case .cancelled:
+            guard self.shouldSlide else { return }
+            self.shouldSlide = false
+            
+            self.progress = Float(x/self.bounds.size.width)
+            let success: Bool
+            let finalX: CGFloat
+            
+            //If we are more than 65% through the swipe and moving the the right direction
+            if self.progress > self.sliderThreshold && recognizer.velocity(in: self).x > -1.0 {
+                success = true
+                finalX = self.bounds.size.width
+            } else {
+                success = false
+                finalX = CGFloat(self.sliderWidth)
+                self.progress = 0.0
+            }
+            
+            self.sliderWidthConstraint.constant = finalX
+            self.setNeedsUpdateConstraints()
+            
+            UIView.animate(withDuration: 0.25, animations: {
+                self.layoutIfNeeded()
+            }, completion: { (finished) in
+                if success {
+                    if #available(iOS 9.0, *) {
+                        self.sendActions(for: .primaryActionTriggered)
                     }
-                })
-            default: break
+                    
+                    self.sendActions(for: .editingDidEnd)
+                } else {
+                    self.sendActions(for: .touchCancel)
+                }
+            })
+        default: break
         }
     }
 }
