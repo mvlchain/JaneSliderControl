@@ -14,6 +14,8 @@ import UIKit
     fileprivate let sliderLabel:UILabel = UILabel()
     fileprivate var sliderWidthConstraint:NSLayoutConstraint!
     fileprivate var sliderImageWidthConstraint:NSLayoutConstraint!
+    fileprivate var sliderLabelLeftConstraint:NSLayoutConstraint!
+    fileprivate var sliderLabelRightConstraint:NSLayoutConstraint!
     fileprivate var shouldSlide: Bool = false
     fileprivate let imageView:UIImageView = UIImageView()
     
@@ -71,6 +73,18 @@ import UIKit
             self.setNeedsLayout()
         }
     }
+    @IBInspectable open var sliderLabelLeftOffset:Float = 5 {
+        didSet {
+            self.sliderLabelLeftConstraint.constant = CGFloat(self.sliderLabelLeftOffset)
+            self.setNeedsLayout()
+        }
+    }
+    @IBInspectable open var sliderLabelRightOffset:Float = 5 {
+        didSet {
+            self.sliderLabelRightConstraint.constant = CGFloat(self.sliderLabelRightOffset)
+            self.setNeedsLayout()
+        }
+    }
     
     @IBInspectable open var sliderThreshold:Float = 0.65 {
         didSet {
@@ -90,11 +104,13 @@ import UIKit
     }
     
     //MARK: - Private Methods
-    fileprivate func addVisualConstraints(_ vertical:String, horizontal:String, view:UIView, toView:UIView) {
+    fileprivate func addVisualConstraints(_ vertical:String, horizontal:String?, view:UIView, toView:UIView) {
         let veritcalConstraints = NSLayoutConstraint.constraints(withVisualFormat: vertical, options: [], metrics: nil, views: ["view":view])
-        let horizontalConstraints = NSLayoutConstraint.constraints(withVisualFormat: horizontal, options: [], metrics: nil, views: ["view":view])
+        if let horizontal = horizontal {
+            let horizontalConstraints = NSLayoutConstraint.constraints(withVisualFormat: horizontal, options: [], metrics: nil, views: ["view":view])
+            self.addConstraints(horizontalConstraints)
+        }
         self.addConstraints(veritcalConstraints)
-        self.addConstraints(horizontalConstraints)
     }
     
     fileprivate func setupSlider() {
@@ -108,7 +124,11 @@ import UIKit
         self.sliderLabel.textColor = self.textColor
         self.sliderLabel.font = self.sliderFont
         self.addSubview(self.sliderLabel)
-        self.addVisualConstraints("V:|[view]|", horizontal: "H:|[view]|", view: self.sliderLabel, toView: self)
+        self.addVisualConstraints("V:|[view]|", horizontal: nil, view: self.sliderLabel, toView: self)
+        self.sliderLabelLeftConstraint = NSLayoutConstraint(item: self.sliderLabel, attribute: .left, relatedBy: .equal, toItem: self, attribute: .left, multiplier: 1.0, constant: CGFloat(self.sliderLabelLeftOffset))
+        self.sliderLabelRightConstraint = NSLayoutConstraint(item: self.sliderLabel, attribute: .right, relatedBy: .equal, toItem: self, attribute: .right, multiplier: 1.0, constant: CGFloat(self.sliderLabelRightOffset))
+        self.addConstraint(self.sliderLabelLeftConstraint)
+        self.addConstraint(self.sliderLabelRightConstraint)
         
         //Create Slider
         self.slider.translatesAutoresizingMaskIntoConstraints = false
@@ -140,6 +160,8 @@ import UIKit
     open func reset() {
         self.progress = 0.0
         self.sliderWidthConstraint.constant = CGFloat(self.sliderWidth)
+        self.sliderLabelLeftConstraint.constant = CGFloat(self.sliderLabelLeftOffset)
+        self.sliderLabelRightConstraint.constant = CGFloat(self.sliderLabelRightOffset)
         self.setNeedsUpdateConstraints()
         self.layoutIfNeeded()
     }
